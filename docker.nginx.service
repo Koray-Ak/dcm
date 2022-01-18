@@ -1,0 +1,27 @@
+[Unit]
+Description=Nginx Container
+After=dockerservice
+Requires=docker.service
+
+[Service]
+User=root
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker exec nginx stop
+ExecStartPre=-/usr/bin/docker rm nginx
+ExecStartPre=/usr/bin/docker volume create conf
+ExecStartPre=/usr/bin/docker volume create html
+ExecStartPre=/usr/bin/docker pull nginx:stable
+ExecStart=/usr/bin/docker run \
+        --name nginx \
+	-v /home/koray/proxy/nginx:/etc/nginx \
+	-v /home/koray/proxy/html:/usr/share/nginx/html \
+	-v /home/koray/proxy/letsencrypt:/etc/letsencrypt \
+        -p 80:80 \
+        -p 443:443 \
+        nginx:stable
+Restart=always
+RestartSec=5
+ExecStop=/usr/bin/docker rm -f nginx
+
+[Install]
+WantedBy=multi-user.target

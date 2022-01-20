@@ -42,13 +42,17 @@ esac
 case $ssl in
 "ssl" )
 email="peter.korduan@gdi-service.de"
-webroot=/var/www/html
-path=/home/gisadmin/networks/proxy/services/proxy
+www_destination="$(docker inspect proxy --format "{{json .Mounts}}" | jq -r ".[].Destination" | grep html)"
+www_source="$(docker inspect proxy --format "{{json .Mounts}}" | jq -r ".[].Source" | grep html)"
+letsencrypt="$(docker inspect proxy --format "{{json .Mounts}}" | jq -r ".[].Source" | grep letsencrypt)"
+log_source="$(docker inspect proxy --format "{{json .Mounts}}" | jq -r ".[].Source" | grep log)"
+log_destination="$(docker inspect proxy --format "{{json .Mounts}}" | jq -r ".[].Destination" | grep log)"
+
 docker run --rm --interactive --name certbot \
-    -v "$path/www/html:/var/www/html" \
-    -v "$path/letsencrypt:/etc/letsencrypt" \
-    -v "$path/log:/var/log/nginx" \
-certbot/certbot certonly --webroot -w $webroot -d $2 --email $email
+    -v "$www_source:$www_destination" \
+    -v "$letsencrypt:/etc/letsencrypt" \
+    -v "$log_source:$log_destination" \
+certbot/certbot certonly --webroot -w $www_destination -d $2 --email $email
 ;;
 * );;
 esac
@@ -64,9 +68,11 @@ case $inspect in
 
 if [ "$2" = "help" ] ; then
 	echo ""
-	echo "dcm inspect [Container Name] [Options]"
+	echo " Usage : dcm inspect [Container Name] [Options]"
 	echo ""
 	echo " - Mounts"
+	echo "   - .[].Source"
+	echo "   - .[].Destination"
 	echo " - Config"
 	echo "   - .Hostname"
 	echo "   - .Domainname"
@@ -81,8 +87,8 @@ if [ "$2" = "help" ] ; then
 	echo "   - .[Network Name].Aliases"
 	echo "   - .[Network Name].MacAddress"
 	echo ""
-elif [ "$1" = "inspect" ] ; then
-echo "Usage for details command dcm inspect help"
+#elif [ "$1" = "inspect" ] ; then
+#echo "Usage for details command dcm inspect help"
 
 else
 docker inspect $2 --format "{{json .${3}}}" | jq -r $4
